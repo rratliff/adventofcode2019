@@ -10,14 +10,11 @@ def runComputer(machineCodeTuple):
         if len(machineCode) < 4:
             raise ValueError("Smaller machine code than expected.")
         operation = machineCode[position:position+4]
-        print(operation)
         opcode, left, right, output = operation
         if (opcode == 1):
-            print("add")
             result = machineCode[left] + machineCode[right]
             machineCode[output] = result
         elif opcode == 2:
-            print("multiply")
             result = machineCode[left] * machineCode[right]
             machineCode[output] = result
         position += 4
