@@ -31,10 +31,8 @@ def d(dist, origin=(0,0)):
 def inclusive(a,b):
     smaller = min(a,b)
     larger = max(a,b)
-    unordered = list(range(smaller, larger+1))
-    if a > b:
-        unordered.reverse()
-    return tuple(unordered)
+    unordered = range(smaller, larger+1)
+    return unordered if a < b else reversed(unordered)
 
 def add(p1, p2):
     return (p1[0]+p2[0], p1[1]+p2[1])
@@ -52,14 +50,14 @@ def occupiedPoints(p1, p2):
         raise ValueError("We don't know how to route a wire from {} to {}".format(p1, p2))
 
 def generateRoute(points):
-    # return a list of all occupied points when traveling the list of points provided
+    '''return a list of all occupied points when traveling the list of points provided'''
     origin = (0,0)
     occupied = [origin]
     for p2 in points:
         nextPoint = add(origin,p2)
         occupied.extend(occupiedPoints(origin, nextPoint)[1:])
         origin = nextPoint
-    return tuple(occupied)
+    return occupied
 
 def distanceToClosestCrossing(crossings):
     distances = [manhattanDistance(*point) for point in crossings]
@@ -98,10 +96,10 @@ class TestWireGrid(unittest.TestCase):
         self.assertEqual(r(5, r(5)), (10,0))
 
     def test_inclusive(self):
-        self.assertEqual(inclusive(3,5), (3,4,5))
-        self.assertEqual(inclusive(5,3), (5,4,3))
-        self.assertEqual(inclusive(-5, -3), (-5, -4, -3))
-        self.assertEqual(inclusive(-3, -5), (-3, -4, -5))
+        self.assertEqual(tuple(inclusive(3,5)), (3,4,5))
+        self.assertEqual(tuple(inclusive(5,3)), (5,4,3))
+        self.assertEqual(tuple(inclusive(-5, -3)), (-5, -4, -3))
+        self.assertEqual(tuple(inclusive(-3, -5)), (-3, -4, -5))
 
     def test_occupiedPoints(self):
         self.assertEqual(occupiedPoints((0,0), (0,0)), (0,0))
@@ -111,9 +109,9 @@ class TestWireGrid(unittest.TestCase):
         self.assertEqual(occupiedPoints((2,0),(0,0)), ((2,0), (1,0), (0,0)))
 
     def test_generateRoute(self):
-        self.assertEqual(generateRoute((r(1), u(1))), ((0,0), (1,0), (1,1)))
-        self.assertEqual(generateRoute((u(1), r(1))), ((0,0), (0,1), (1,1)))
-        self.assertEqual(generateRoute((u(1), r(3),u(1))), ((0,0), (0,1), (1,1), (2,1), (3,1), (3,2)))
+        self.assertEqual(generateRoute((r(1), u(1))), [(0,0), (1,0), (1,1)])
+        self.assertEqual(generateRoute((u(1), r(1))), [(0,0), (0,1), (1,1)])
+        self.assertEqual(generateRoute((u(1), r(3),u(1))), [(0,0), (0,1), (1,1), (2,1), (3,1), (3,2)])
 
     def test_distanceToPoint(self):
         route = generateRoute((u(1), r(3),u(1)))
