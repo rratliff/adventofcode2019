@@ -79,14 +79,12 @@ def distanceToPoint(route, point):
     distances = {}
     total = 0
     for rp in route:
-        if rp == point:
-            return total
-        total += 1
         if not rp in distances:
             distances[rp] = total
-        else:
-            total = distances[rp]
-    return total
+        if rp == point:
+            break
+        total += 1
+    return distances[rp]
 
 def bestIntersection(r1, r2):
     cps = findCrossingPoints(r1, r2)
@@ -101,6 +99,7 @@ class TestWireGrid(unittest.TestCase):
 
     def test_inclusive(self):
         self.assertEqual(inclusive(3,5), (3,4,5))
+        self.assertEqual(inclusive(5,3), (5,4,3))
         self.assertEqual(inclusive(-5, -3), (-5, -4, -3))
         self.assertEqual(inclusive(-3, -5), (-3, -4, -5))
 
@@ -129,12 +128,17 @@ class TestWireGrid(unittest.TestCase):
     def test_distanceToPointWithLoop(self):
         r1 = generateRoute(routeInput('U4,R2,D2,L4'))
         self.assertEqual(r1[-1], (-2,2))
-        self.assertEqual(distanceToPoint(r1, (-2,2)), 4)
+        self.assertEqual(distanceToPoint(r1, (-2,2)), 12)
 
     def test_distanceToPointWithDoubleLoop(self):
         r1 = generateRoute(routeInput('U4,R2,D2,L4,U2,R1,D4'))
         self.assertEqual(r1[-1],(-1,0))
-        self.assertEqual(distanceToPoint(r1, (-1,0)), 5)
+        self.assertEqual(distanceToPoint(r1, (-1,0)), 19)
+
+    def test_distanceToPointContrived(self):
+        r1 = generateRoute(routeInput('U4,R2,D2,L4,U2,R1,D4'))
+        r2 = generateRoute(routeInput('L1'))
+        self.assertEqual(bestIntersection(r1,r2), 20)
 
     def test_bestIntersection(self):
         r1 = generateRoute(routeInput('R8,U5,L5,D3'))
@@ -144,11 +148,9 @@ class TestWireGrid(unittest.TestCase):
     def test_moreDistanceExamples(self):
         r1 = generateRoute(routeInput('R75,D30,R83,U83,L12,D49,R71,U7,L72'))
         r2 = generateRoute(routeInput('U62,R66,U55,R34,D71,R55,D58,R83'))
-        print("crossing points: ",len(findCrossingPoints(r1,r2)))
         self.assertEqual(bestIntersection(r1, r2), 610)
         r1 = generateRoute(routeInput('R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51'))
         r2 = generateRoute(routeInput('U98,R91,D20,R16,D67,R40,U7,R15,U6,R7'))
-        print("crossing points: ",len(findCrossingPoints(r1,r2)))
         self.assertEqual(bestIntersection(r1, r2), 410)
 
     def test_findCrossingPoints(self):
@@ -158,7 +160,7 @@ class TestWireGrid(unittest.TestCase):
         doubleLoopRoute = generateRoute(routeInput('U4,R2,D2,L4,U2,R1,D4'))
         leftone = generateRoute((l(1),))
         self.assertEqual(findCrossingPoints(doubleLoopRoute, leftone), ((-1,0),))
-        self.assertEqual(bestIntersection(leftone,doubleLoopRoute), 6)
+        self.assertEqual(bestIntersection(leftone,doubleLoopRoute), 20)
 
     def test_manhattanDistance(self):
         self.assertEqual(manhattanDistance(3,3), 6)
