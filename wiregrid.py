@@ -6,7 +6,9 @@ def manhattanDistance(x, y):
 
 def findCrossingPoints(route1, route2):
     '''given 2 routes, find all the crossing points'''
-    allCrossings = set(route1.intersection(route2))
+    s1 = set(route1)
+    s2 = set(route2)
+    allCrossings = s1.intersection(s2)
     allCrossings.remove((0,0))
     return tuple(allCrossings)
 
@@ -29,7 +31,10 @@ def d(dist, origin=(0,0)):
 def inclusive(a,b):
     smaller = min(a,b)
     larger = max(a,b)
-    return tuple(range(smaller, larger+1))
+    unordered = list(range(smaller, larger+1))
+    if a > b:
+        unordered.reverse()
+    return tuple(unordered)
 
 def add(p1, p2):
     return (p1[0]+p2[0], p1[1]+p2[1])
@@ -48,13 +53,13 @@ def occupiedPoints(p1, p2):
 
 def generateRoute(points):
     # return a list of all occupied points when traveling the list of points provided
-    occupied = set()
     origin = (0,0)
+    occupied = [origin]
     for p2 in points:
         nextPoint = add(origin,p2)
-        [occupied.add(point) for point in occupiedPoints(origin, nextPoint)]
+        occupied.extend(occupiedPoints(origin, nextPoint)[1:])
         origin = nextPoint
-    return frozenset(occupied)
+    return tuple(occupied)
 
 def distanceToClosestCrossing(crossings):
     distances = [manhattanDistance(*point) for point in crossings]
@@ -70,6 +75,22 @@ def routeInput(route):
         points.append(point)
     return tuple(points)
 
+def distanceToPoint(route, point):
+    distances = {}
+    total = 0
+    for rp in route:
+        if rp == point:
+            return total
+        total += 1
+        if not rp in distances:
+            distances[rp] = total
+        else:
+            total = distances[rp]
+    return total
+
+def bestIntersection(r1, r2):
+    cps = findCrossingPoints(r1, r2)
+    return min([distanceToPoint(r1, c)+distanceToPoint(r2, c) for c in cps])
 
 class TestWireGrid(unittest.TestCase):
 
@@ -81,23 +102,63 @@ class TestWireGrid(unittest.TestCase):
     def test_inclusive(self):
         self.assertEqual(inclusive(3,5), (3,4,5))
         self.assertEqual(inclusive(-5, -3), (-5, -4, -3))
-        self.assertEqual(inclusive(-3, -5), (-5, -4, -3))
+        self.assertEqual(inclusive(-3, -5), (-3, -4, -5))
 
     def test_occupiedPoints(self):
         self.assertEqual(occupiedPoints((0,0), (0,0)), (0,0))
         self.assertEqual(occupiedPoints((1,1), (1,1)), (1,1))
         self.assertEqual(occupiedPoints((0,0), (1,0)), ((0,0), (1,0)))
         self.assertEqual(occupiedPoints((0,0), (2,0)), ((0,0), (1,0), (2,0)))
+        self.assertEqual(occupiedPoints((2,0),(0,0)), ((2,0), (1,0), (0,0)))
 
     def test_generateRoute(self):
-        self.assertEqual(generateRoute((r(1), u(1))), frozenset(((0,0), (1,0), (1,1))))
-        self.assertEqual(generateRoute((u(1), r(1))), frozenset(((0,0), (0,1), (1,1))))
-        self.assertEqual(generateRoute((u(1), r(3),u(1))), frozenset(((0,0), (0,1), (1,1), (2,1), (3,1), (3,2))))
+        self.assertEqual(generateRoute((r(1), u(1))), ((0,0), (1,0), (1,1)))
+        self.assertEqual(generateRoute((u(1), r(1))), ((0,0), (0,1), (1,1)))
+        self.assertEqual(generateRoute((u(1), r(3),u(1))), ((0,0), (0,1), (1,1), (2,1), (3,1), (3,2)))
 
-    def test_routeCrossings(self):
+    def test_distanceToPoint(self):
+        route = generateRoute((u(1), r(3),u(1)))
+        self.assertEqual(distanceToPoint(route, (3,2)), 5)
+        r1 = generateRoute(routeInput('R8,U5,L5,D3'))
+        self.assertEqual(distanceToPoint(r1, (3,3)), 20)
+        self.assertEqual(distanceToPoint(r1, (6,5)), 15)
+        r2 = generateRoute(routeInput('U7,R6,D4,L4'))
+        self.assertEqual(distanceToPoint(r2, (3,3)), 20)
+        self.assertEqual(distanceToPoint(r2, (6,5)), 15)
+
+    def test_distanceToPointWithLoop(self):
+        r1 = generateRoute(routeInput('U4,R2,D2,L4'))
+        self.assertEqual(r1[-1], (-2,2))
+        self.assertEqual(distanceToPoint(r1, (-2,2)), 4)
+
+    def test_distanceToPointWithDoubleLoop(self):
+        r1 = generateRoute(routeInput('U4,R2,D2,L4,U2,R1,D4'))
+        self.assertEqual(r1[-1],(-1,0))
+        self.assertEqual(distanceToPoint(r1, (-1,0)), 5)
+
+    def test_bestIntersection(self):
+        r1 = generateRoute(routeInput('R8,U5,L5,D3'))
+        r2 = generateRoute(routeInput('U7,R6,D4,L4'))
+        self.assertEqual(bestIntersection(r1, r2), 30)
+
+    def test_moreDistanceExamples(self):
+        r1 = generateRoute(routeInput('R75,D30,R83,U83,L12,D49,R71,U7,L72'))
+        r2 = generateRoute(routeInput('U62,R66,U55,R34,D71,R55,D58,R83'))
+        print("crossing points: ",len(findCrossingPoints(r1,r2)))
+        self.assertEqual(bestIntersection(r1, r2), 610)
+        r1 = generateRoute(routeInput('R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51'))
+        r2 = generateRoute(routeInput('U98,R91,D20,R16,D67,R40,U7,R15,U6,R7'))
+        print("crossing points: ",len(findCrossingPoints(r1,r2)))
+        self.assertEqual(bestIntersection(r1, r2), 410)
+
+    def test_findCrossingPoints(self):
         r1 = generateRoute((r(1), u(1)))
         r2 = generateRoute((u(1), r(1)))
         self.assertEqual(findCrossingPoints(r1, r2), ((1,1),))
+        doubleLoopRoute = generateRoute(routeInput('U4,R2,D2,L4,U2,R1,D4'))
+        leftone = generateRoute((l(1),))
+        self.assertEqual(findCrossingPoints(doubleLoopRoute, leftone), ((-1,0),))
+        self.assertEqual(bestIntersection(leftone,doubleLoopRoute), 6)
 
     def test_manhattanDistance(self):
         self.assertEqual(manhattanDistance(3,3), 6)
