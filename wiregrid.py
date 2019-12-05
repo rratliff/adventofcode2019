@@ -10,7 +10,7 @@ def findCrossingPoints(route1, route2):
     s2 = set(route2)
     allCrossings = s1.intersection(s2)
     allCrossings.remove((0,0))
-    return tuple(allCrossings)
+    return allCrossings
 
 def r(dist, origin=(0,0)):
     x1, y1 = origin
@@ -71,7 +71,7 @@ def routeInput(route):
         dist = int(s[1:])
         point = globals()[direction](dist)
         points.append(point)
-    return tuple(points)
+    return points
 
 def distanceToPoint(route, point):
     distances = {}
@@ -154,10 +154,10 @@ class TestWireGrid(unittest.TestCase):
     def test_findCrossingPoints(self):
         r1 = generateRoute((r(1), u(1)))
         r2 = generateRoute((u(1), r(1)))
-        self.assertEqual(findCrossingPoints(r1, r2), ((1,1),))
+        self.assertEqual(findCrossingPoints(r1, r2), {(1,1)})
         doubleLoopRoute = generateRoute(routeInput('U4,R2,D2,L4,U2,R1,D4'))
         leftone = generateRoute((l(1),))
-        self.assertEqual(findCrossingPoints(doubleLoopRoute, leftone), ((-1,0),))
+        self.assertEqual(findCrossingPoints(doubleLoopRoute, leftone), {(-1,0)})
         self.assertEqual(bestIntersection(leftone,doubleLoopRoute), 20)
 
     def test_manhattanDistance(self):
@@ -169,15 +169,15 @@ class TestWireGrid(unittest.TestCase):
         self.assertEqual(distanceToClosestCrossing(((1,1),(2,2))), 2)
 
     def test_routeInput(self):
-        self.assertEqual(routeInput('R5'), (r(5),))
-        self.assertEqual(routeInput('R1,U1'), (r(1),u(1)))
-        self.assertEqual(routeInput('R8,U5,L5,D3'), (r(8), u(5), l(5), d(3)))
+        self.assertEqual(routeInput('R5'), [r(5)])
+        self.assertEqual(routeInput('R1,U1'), [r(1),u(1)])
+        self.assertEqual(routeInput('R8,U5,L5,D3'), [r(8), u(5), l(5), d(3)])
 
     def test_all_together(self):
         r1 = generateRoute(routeInput('R8,U5,L5,D3'))
         r2 = generateRoute(routeInput('U7,R6,D4,L4'))
         crossingPoints = findCrossingPoints(r1,r2)
-        self.assertEqual(crossingPoints, ((3,3),(6,5)))
+        self.assertEqual(crossingPoints, {(3,3),(6,5)})
         self.assertEqual(distanceToClosestCrossing(crossingPoints), 6)
 
     def test_longer_examples(self):
