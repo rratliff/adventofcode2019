@@ -13,29 +13,48 @@ class Instruction():
         immediateMode = modes[offset-1] if offset <= len(modes) else False
         return val if immediateMode else self.memory[val]
 
+    def setParameter(self, pos,offset, val):
+        self.memory[self.memory[pos+offset]] = val
+
 class add(Instruction):
     def execute(self,pos):
-        outAddr = self.memory[pos+3]
-        self.memory[outAddr] = self.getParameter(pos,1) + self.getParameter(pos,2)
-        return 4
+        self.setParameter(pos,3, self.getParameter(pos,1) + self.getParameter(pos,2))
+        return pos+4
 
 class mul(Instruction):
     def execute(self,pos):
-        outAddr = self.memory[pos+3]
-        self.memory[outAddr] = self.getParameter(pos,1) * self.getParameter(pos,2)
-        return 4
+        self.setParameter(pos,3, self.getParameter(pos,1) * self.getParameter(pos,2))
+        return pos+4
 
 class inp(Instruction):
     def execute(self,pos):
-        self.memory[self.memory[pos+1]] = self.inQ.popleft()
-        return 2
+        self.setParameter(pos,1,self.inQ.popleft())
+        return pos+2
 
 class outp(Instruction):
     def execute(self,pos):
-        self.outQ.append(self.memory[self.memory[pos+1]])
-        return 2
+        self.outQ.append(self.getParameter(pos,1))
+        return pos+2
 
-opcode_mappings = {1:add,2:mul,3:inp,4:outp}
+class jit(Instruction):
+    def execute(self,pos):
+        return self.getParameter(pos,2) if self.getParameter(pos,1) != 0 else pos+3
+
+class jif(Instruction):
+    def execute(self, pos):
+        return self.getParameter(pos,2) if self.getParameter(pos,1) == 0 else pos+3
+
+class lt(Instruction):
+    def execute(self,pos):
+        self.setParameter(pos,3, 1 if self.getParameter(pos,1) < self.getParameter(pos,2) else 0)
+        return pos + 4
+
+class eq(Instruction):
+    def execute(self, pos):
+        self.setParameter(pos,3, 1 if self.getParameter(pos,1) == self.getParameter(pos,2) else 0)
+        return pos+4
+
+opcode_mappings = {1:add,2:mul,3:inp,4:outp,5:jit,6:jif,7:lt,8:eq}
 
 def getOpcode(ins):
     digits = [i for i in str(ins)]
@@ -56,7 +75,7 @@ def runComputer(memoryTuple, inList=[]):
         opcode = getOpcode(memory[position])[0]
         if opcode == 99:
             break
-        position += opcode_mappings[opcode](memory, inQueue, output).execute(position)
+        position = opcode_mappings[opcode](memory, inQueue, output).execute(position)
     return tuple(memory), output
 
 class TestIntcode(unittest.TestCase):
@@ -110,5 +129,34 @@ class TestIntcode(unittest.TestCase):
         self.assertEqual(Instruction(memory, [], []).getParameter(0,1), 33)
         self.assertEqual(Instruction(memory, [], []).getParameter(0,2), 3)
 
+    def test_comparison(self):
+        equalityComputer = (3,9,8,9,10,9,4,9,99,-1,8)
+        self.assertEqual(runComputer(equalityComputer, [9])[1], [0])
+        self.assertEqual(runComputer(equalityComputer, [8])[1], [1])
+        lt8Computer = (3,9,7,9,10,9,4,9,99,-1,8)
+        self.assertEqual(runComputer(lt8Computer, [8])[1], [0])
+        self.assertEqual(runComputer(lt8Computer, [-42])[1], [1])
+        eq8Computer = (3,3,1108,-1,8,3,4,3,99)
+        self.assertEqual(runComputer(eq8Computer, [8])[1], [1])
+        self.assertEqual(runComputer(eq8Computer, [-42])[1], [0])
+        lt8Computer = (3,3,1107,-1,8,3,4,3,99)
+        self.assertEqual(runComputer(lt8Computer, [8])[1], [0])
+        self.assertEqual(runComputer(lt8Computer, [-42])[1], [1])
+
+    def test_jump(self):
+        jumpComputerPosMode = (3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9)
+        self.assertEqual(runComputer(jumpComputerPosMode, [0])[1], [0])
+        self.assertEqual(runComputer(jumpComputerPosMode, [1])[1], [1])
+        jumpImmediateMode = (3,3,1105,-1,9,1101,0,0,12,4,12,99,1)
+        self.assertEqual(runComputer(jumpImmediateMode, [0])[1], [0])
+        self.assertEqual(runComputer(jumpImmediateMode, [1])[1], [1])
+
+    def test_largerExample(self):
+        largerExample = (3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31, \
+                1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,\
+                999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99)
+        self.assertEqual(runComputer(largerExample, [0])[1], [999])
+        self.assertEqual(runComputer(largerExample, [8])[1], [1000])
+        self.assertEqual(runComputer(largerExample, [20])[1], [1001])
 if __name__ == '__main__':
     unittest.main()
